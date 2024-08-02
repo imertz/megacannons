@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tax Data Showcase</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      #search-filter {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      #search-input,
+      #sort-select,
+      #filter-select {
+        padding: 5px;
+        margin-right: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        color: #333;
+        cursor: pointer;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      .currency {
+        text-align: right;
+      }
+      #loading {
+        text-align: center;
+        font-size: 18px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tax Data Showcase</h1>
+    <div id="search-filter">
+      <input type="text" id="search-input" placeholder="Search..." />
+      <select id="sort-select">
+        <option value="">Sort by...</option>
+        <option value="name">Name</option>
+        <option value="totalGovernmentDebt">Total Government Debt</option>
+        <option value="totalEfkaDebt">Total EFKA Debt</option>
+      </select>
+      <select id="filter-select">
+        <option value="">Filter by...</option>
+        <option value="hasGovernmentDebt">Has Government Debt</option>
+        <option value="hasEfkaDebt">Has EFKA Debt</option>
+      </select>
+    </div>
+    <table id="data-table">
+      <thead>
+        <tr>
+          <th>Tax ID</th>
+          <th>Name</th>
+          <th>Debt to Tax Offices</th>
+          <th>Debt to Customs</th>
+          <th>Co-collected Government</th>
+          <th>Total Government Debt</th>
+          <th>Debt to EFKA</th>
+          <th>Co-collected EFKA</th>
+          <th>Total EFKA Debt</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="loading">Loading data...</div>
+
+    <script>
+      const tableBody = document.getElementById("table-body");
+      const searchInput = document.getElementById("search-input");
+      const sortSelect = document.getElementById("sort-select");
+      const filterSelect = document.getElementById("filter-select");
+      const loadingDiv = document.getElementById("loading");
+      let data = [];
+
+      async function fetchData() {
+        try {
+          const response = await fetch("./data.json");
+          data = await response.json();
+          loadingDiv.style.display = "none";
+          renderTable(data);
+          setupEventListeners();
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          loadingDiv.textContent =
+            "Error loading data. Please try again later.";
+        }
+      }
+
+      function renderTable(filteredData) {
+        tableBody.innerHTML = "";
+        filteredData.forEach((item) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${item.taxId}</td>
+                    <td>${item.name}</td>
+                    <td class="currency">${item.debtToTaxOffices.toFixed(
+                      2
+                    )}</td>
+                    <td class="currency">${item.debtToCustoms.toFixed(2)}</td>
+                    <td class="currency">${item.coCollectedGovernment.toFixed(
+                      2
+                    )}</td>
+                    <td class="currency">${item.totalGovernmentDebt.toFixed(
+                      2
+                    )}</td>
+                    <td class="currency">${item.debtToEfka.toFixed(2)}</td>
+                    <td class="currency">${item.coCollectedEfka.toFixed(2)}</td>
+                    <td class="currency">${item.totalEfkaDebt.toFixed(2)}</td>
+                    <td>${item.remarks}</td>
+                `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      function filterAndSortData() {
+        let filteredData = [...data];
+
+        // Search
+        const searchTerm = searchInput.value.toLowerCase();
+        if (searchTerm) {
+          filteredData = filteredData.filter((item) =>
+            Object.values(item).some((value) =>
+              value.toString().toLowerCase().includes(searchTerm)
+            )
+          );
+        }
+
+        // Filter
+        const filterValue = filterSelect.value;
+        if (filterValue === "hasGovernmentDebt") {
+          filteredData = filteredData.filter(
+            (item) => item.totalGovernmentDebt > 0
+          );
+        } else if (filterValue === "hasEfkaDebt") {
+          filteredData = filteredData.filter((item) => item.totalEfkaDebt > 0);
+        }
+
+        // Sort
+        const sortValue = sortSelect.value;
+        if (sortValue) {
+          filteredData.sort((a, b) => {
+            if (a[sortValue] < b[sortValue]) return -1;
+            if (a[sortValue] > b[sortValue]) return 1;
+            return 0;
+          });
+        }
+
+        renderTable(filteredData);
+      }
+
+      function setupEventListeners() {
+        searchInput.addEventListener("input", filterAndSortData);
+        sortSelect.addEventListener("change", filterAndSortData);
+        filterSelect.addEventListener("change", filterAndSortData);
+
+        // Add sorting functionality to table headers
+        document.querySelectorAll("th").forEach((th) => {
+          th.addEventListener("click", () => {
+            const key = th.textContent.toLowerCase().replace(/ /g, "");
+            data.sort((a, b) => {
+              if (a[key] < b[key]) return -1;
+              if (a[key] > b[key]) return 1;
+              return 0;
+            });
+            renderTable(data);
+          });
+        });
+      }
+
+      // Initial data fetch
+      fetchData();
+    </script>
+  </body>
+</html>
