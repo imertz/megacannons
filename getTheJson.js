@@ -12,7 +12,11 @@ function parseDebtTable(htmlContent) {
     const cells = row.match(/<td[^>]*>(.*?)<\/td>/g);
     if (!cells || cells.length !== 10) return null;
 
-    const parseNumber = (str) => parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    const parseNumber = (str) => {
+      str = str.replace(/<[^>]+>/g, '').trim();
+      if (str === '-') return 0;
+      return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    };
 
     return {
       taxId: cells[0].replace(/<[^>]+>/g, '').trim(),
