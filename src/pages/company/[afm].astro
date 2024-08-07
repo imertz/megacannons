@@ -1,0 +1,169 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import companies2022 from '../../data/nomika_2022.json';
+import companies2023 from '../../data/nomika2023withkad.json';
+import CompanyCharts from '../../components/CompanyCharts';
+
+export function getStaticPaths() {
+  const allCompanies = [
+    ...companies2022.map(company => ({ ...company, year: 2022 })),
+    ...companies2023.map(company => ({ ...company, year: 2023 }))
+  ];
+  
+  return allCompanies.map((company) => ({
+    params: { afm: company.afm },
+    props: { company },
+  }));
+}
+
+const { company } = Astro.props;
+const { year } = Astro.url.searchParams;
+
+const companyData = {
+  2022: companies2022.find(c => c.afm === company.afm) || null,
+  2023: companies2023.find(c => c.afm === company.afm) || null
+};
+
+function formatCurrency(amount) {
+  return amount ? amount.toLocaleString('el-GR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }) : '-';
+}
+
+function calculateChange(value2022, value2023) {
+  if (value2022 === undefined || value2023 === undefined || value2022 === 0 || value2023===0) return '-';
+  const change = value2023 - value2022;
+  const percentChange = (change / value2022) * 100;
+  return `${formatCurrency(change)} (${percentChange.toFixed(2)}%)`;
+}
+
+function getValue(year, field) {
+  return companyData[year] ? companyData[year][field] : undefined;
+}
+---
+
+<Layout title={company.name}>
+  <h1>{company.name}</h1>
+  <div class="info-section">
+    <p><span class="label">ΑΦΜ:</span> {company.afm}</p>
+    <p><span class="label">Διεύθυνση:</span> {company.address}, {company.postalCodeAndArea}</p>
+    <p><span class="label">ΚΑΔ:</span> {company.mainKad}</p>
+    <p><span class="label">Περιγραφή ΚΑΔ:</span> {company.mainKadDesc}</p>
+    <p><span class="label">Εταιρικός Τύπος:</span> {company.legalType}</p>
+
+
+  </div>
+  
+  <h2>Οικονομικές Πληροφορίες</h2>
+  <div class="info-grid">
+    <div class="info-section">
+      <h3>Χρέη Προς Το Δημόσιο</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Κατηγορία</th>
+            <th>2022</th>
+            <th>2023</th>
+            <th>Μεταβολή</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Χρέη Προς Εφορία</td>
+            <td>{formatCurrency(getValue(2022, 'debtToDOY'))}</td>
+            <td>{formatCurrency(getValue(2023, 'debtToDOY'))}</td>
+            <td>{calculateChange(getValue(2022, 'debtToDOY'), getValue(2023, 'debtToDOY'))}</td>
+          </tr>
+          <tr>
+            <td>Χρέη Προς Τελωνεία</td>
+            <td>{formatCurrency(getValue(2022, 'debtToCustoms'))}</td>
+            <td>{formatCurrency(getValue(2023, 'debtToCustoms'))}</td>
+            <td>{calculateChange(getValue(2022, 'debtToCustoms'), getValue(2023, 'debtToCustoms'))}</td>
+          </tr>
+          <tr>
+            <td>Συνεισπραττόμενα Δημοσίου</td>
+            <td>{formatCurrency(getValue(2022, 'coCollectedPublic'))}</td>
+            <td>{formatCurrency(getValue(2023, 'coCollectedPublic'))}</td>
+            <td>{calculateChange(getValue(2022, 'coCollectedPublic'), getValue(2023, 'coCollectedPublic'))}</td>
+          </tr>
+          <tr>
+            <td>Σύνολο Δημοσίου</td>
+            <td>{formatCurrency(getValue(2022, 'totalPublic'))}</td>
+            <td>{formatCurrency(getValue(2023, 'totalPublic'))}</td>
+            <td>{calculateChange(getValue(2022, 'totalPublic'), getValue(2023, 'totalPublic'))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="info-section">
+      <h3>Χρέη Προς ΕΦΚΑ</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Κατηγορία</th>
+            <th>2022</th>
+            <th>2023</th>
+            <th>Μεταβολή</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Χρέη Προς ΕΦΚΑ</td>
+            <td>{formatCurrency(getValue(2022, 'debtToEFKA'))}</td>
+            <td>{formatCurrency(getValue(2023, 'debtToEFKA'))}</td>
+            <td>{calculateChange(getValue(2022, 'debtToEFKA'), getValue(2023, 'debtToEFKA'))}</td>
+          </tr>
+          <tr>
+            <td>Συνεισπραττόμενα ΕΦΚΑ</td>
+            <td>{formatCurrency(getValue(2022, 'coCollectedEFKA'))}</td>
+            <td>{formatCurrency(getValue(2023, 'coCollectedEFKA'))}</td>
+            <td>{(calculateChange(getValue(2022, 'coCollectedEFKA'), getValue(2023, 'coCollectedEFKA')))===''}</td>
+          </tr>
+          <tr>
+            <td>Σύνολο ΕΦΚΑ</td>
+            <td>{formatCurrency(getValue(2022, 'totalEFKA'))}</td>
+            <td>{formatCurrency(getValue(2023, 'totalEFKA'))}</td>
+            <td>{calculateChange(getValue(2022, 'totalEFKA'), getValue(2023, 'totalEFKA'))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="info-section">
+    <h2>Διαγράμματα</h2>
+    <CompanyCharts client:load data2022={companyData[2022]} data2023={companyData[2023]} />
+  </div>
+
+  
+</Layout>
+
+<style>
+  .charts-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .charts-container {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .chart {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+  }
+
+  h3 {
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+</style>

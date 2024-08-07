@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EnhancedCompanyTable from '../components/EnhancedCompanyTable';
+import KadChart from '../components/KadChart';
+import AreaDonutChart from '../components/AreaDonutChart';
+
+---
+
+<Layout title="Μεγαλοοφειλέτες Δημοσίου">
+  <>
+    <div class="flex justify-between items-center flex-wrap gap-6 mt-6">
+      
+    <KadChart client:load />
+<AreaDonutChart client:load />
+    </div>
+    <EnhancedCompanyTable client:load year={2023} />
+  </>
+</Layout>
+
+<style>
+  .content-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 0rem;
+  }
+</style>
